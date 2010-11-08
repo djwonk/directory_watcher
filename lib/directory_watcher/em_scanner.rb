@@ -1,8 +1,8 @@
-begin
+DirectoryWatcher::HAVE_EM = begin
   require 'eventmachine'
-  DirectoryWatcher::HAVE_EM = true
+  true
 rescue LoadError
-  DirectoryWatcher::HAVE_EM = false
+  false
 end
 
 if DirectoryWatcher::HAVE_EM

@@ -1,12 +1,11 @@
-begin
+DirectoryWatcher::HAVE_REV = begin
   require 'rev'
-  DirectoryWatcher::HAVE_REV = true
+  true
 rescue LoadError
-  DirectoryWatcher::HAVE_REV = false
+  false
 end
 
 if DirectoryWatcher::HAVE_REV
-
   # The RevScanner uses the Rev loop to monitor changes to files in the
   # watched directory. This scanner is more efficient than the pure Ruby
   # scanner because it relies on the operating system kernel notifictions
