@@ -308,13 +308,7 @@ class DirectoryWatcher
     else
       Dir.mkdir(@dir)
     end
-    class_name = opts[:scanner].to_s.capitalize + 'Scanner'
-    klass = begin
-      DirectoryWatcher.const_get(class_name)
-    rescue NameError
-      Scanner
-    end
-    @scanner = klass.new { |events| notify_observers(events) }
+    @scanner = scanner_class(opts).new { |events| notify_observers(events) }
     self.glob     = opts[:glob] || '*'
     self.interval = opts[:interval] || 30
     self.stable   = opts[:stable] || nil
@@ -523,6 +517,17 @@ class DirectoryWatcher
   end
 
   private
+
+  def scanner_class(opts)
+    scanner = opts[:scanner]
+    return Scanner unless scanner
+    class_name = scanner.to_s.capitalize + 'Scanner'
+    begin
+      DirectoryWatcher.const_get(class_name)
+    rescue NameError
+      raise ArgumentError, "Cannot find #{class_name} (based on :scanner option #{scanner.inspect})."
+    end
+  end
 
   # Invoke the update method of each registered observer in turn passing the
   # list of file events to each.
