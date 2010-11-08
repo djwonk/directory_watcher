@@ -311,7 +311,7 @@ class DirectoryWatcher
     class_name = opts[:scanner].to_s.capitalize + 'Scanner'
     klass = begin
       DirectoryWatcher.const_get(class_name)
-    rescue # TODO: Bare rescue is not wise!
+    rescue NameError
       Scanner
     end
     @scanner = klass.new { |events| notify_observers(events) }
