@@ -1,4 +1,3 @@
-
 # The Scanner is responsible for polling the watched directory at a regular
 # interval and generating events when files are modified, added or removed.
 # These events are passed to the DirectoryWatcher which notifies the
@@ -8,7 +7,6 @@
 # interpreters on the major platforms. This also means that it can be
 # processor intensive for large numbers of files or very fast update
 # intervals. Your mileage will vary, but it is something to keep an eye on.
-#
 class DirectoryWatcher::Scanner
 
   attr_accessor :glob
@@ -21,37 +19,31 @@ class DirectoryWatcher::Scanner
   #
   # Create a thread-based scanner that will generate file events and pass
   # those events (as an array) to the given _block_.
-  #
-  def initialize( &block )
+  def initialize(&block)
     @events = []
     @thread = nil
-    @notify = block;
+    @notify = block
   end
 
   # Returns +true+ if the scanner is currently running. Returns +false+ if
   # this is not the case.
-  #
   def running?
     !@thread.nil?
   end
 
   # Start the scanner thread. If the scanner is already running, this method
   # will return without taking any action.
-  #
   def start
     return if running?
-
     @stop = false
-    @thread = Thread.new(self) {|scanner| scanner.__send__ :run_loop}
+    @thread = Thread.new(self) { |scanner| scanner.__send__(:run_loop) }
     self
   end
 
   # Stop the scanner thread. If the scanner is already stopped, this method
   # will return without taking any action.
-  #
   def stop
     return unless running?
-
     @stop = true
     @thread.wakeup if @thread.status == 'sleep'
     @thread.join
@@ -61,20 +53,19 @@ class DirectoryWatcher::Scanner
   end
 
   # call-seq:
-  #    reset( pre_load = false )
+  #    reset(pre_load = false)
   #
   # Reset the scanner state by clearing the stored file list. Passing +true+
   # to this method will cause the file list to be pre-loaded after it has
   # been cleared effectively skipping the initial round of file added events
   # that would normally be generated.
-  #
-  def reset( pre_load = false )
+  def reset(pre_load = false)
     @events.clear
     @files = (pre_load ? scan_files : Hash.new)
   end
 
   # call-seq:
-  #    join( limit = nil )
+  #    join(limit = nil)
   #
   # If the scanner thread is running, the calling thread will suspend
   # execution and run the scanner thread. This method does not return until
@@ -82,28 +73,23 @@ class DirectoryWatcher::Scanner
   #
   # If the scanner thread is not running, this method returns immediately
   # with +nil+.
-  #
-  def join( limit = nil )
+  def join(limit = nil)
     return unless running?
-    @thread.join limit
+    @thread.join(limit)
   end
 
   # Performs exactly one scan of the directory for file changes and notifies
   # the observers.
-  #
   def run_once
     files = scan_files
-    keys = [files.keys, @files.keys]  # current files, previous files
-
+    keys = [files.keys, @files.keys] # current files, previous files
     find_added(files, *keys)
     find_modified(files, *keys)
     find_removed(*keys)
-
     notify
-    @files = files    # store the current file list for the next iteration
+    @files = files # store the current file list for the next iteration
     self
   end
-
 
   private
 
@@ -116,10 +102,11 @@ class DirectoryWatcher::Scanner
     @glob.each do |glob|
       Dir.glob(glob).each do |fn|
         begin
-          stat = File.stat fn
+          stat = File.stat(fn)
           next unless stat.file?
           files[fn] = ::DirectoryWatcher::FileStat.new(stat.mtime, stat.size)
-        rescue SystemCallError; end
+        rescue SystemCallError
+        end
       end
     end
     files
@@ -131,7 +118,7 @@ class DirectoryWatcher::Scanner
   def list_files
     files = []
     @glob.each do |glob|
-      Dir.glob(glob).each {|fn| files << fn if test ?f, fn}
+      Dir.glob(glob).each { |fn| files << fn if test(?f, fn) }
     end
     files
   end
@@ -146,22 +133,20 @@ class DirectoryWatcher::Scanner
   def run_loop
     until @stop
       start = Time.now.to_f
-
       run_once
-
       nap_time = @interval - (Time.now.to_f - start)
-      sleep nap_time if nap_time > 0
+      sleep(nap_time) if nap_time > 0
     end
   end
 
   # call-seq:
-  #    find_added( files, cur, prev )
+  #    find_added(files, cur, prev)
   #
   # Taking the list of current files, _cur_, and the list of files found
   # previously, _prev_, figure out which files have been added and generate
   # a new file added event for each.
   #
-  def find_added( files, cur, prev )
+  def find_added(files, cur, prev)
     added = cur - prev
     added.each do |fn|
       files[fn].stable = @stable
@@ -171,20 +156,22 @@ class DirectoryWatcher::Scanner
   end
 
   # call-seq:
-  #    find_removed( cur, prev )
+  #    find_removed(cur, prev)
   #
   # Taking the list of current files, _cur_, and the list of files found
   # previously, _prev_, figure out which files have been removed and
   # generate a new file removed event for each.
   #
-  def find_removed( cur, prev )
+  def find_removed(cur, prev)
     removed = prev - cur
-    removed.each {|fn| @events << ::DirectoryWatcher::Event.new(:removed, fn)}
+    removed.each do |fn|
+      @events << ::DirectoryWatcher::Event.new(:removed, fn)
+    end
     self
   end
 
   # call-seq:
-  #    find_modified( files, cur, prev )
+  #    find_modified(files, cur, prev)
   #
   # Taking the list of current files, _cur_, and the list of files found
   # previously, _prev_, find those that are common between them and determine
@@ -193,7 +180,7 @@ class DirectoryWatcher::Scanner
   # figure out if any files have become stable since being added or modified.
   # Generate a new stable event for each stabilized file.
   #
-  def find_modified( files, cur, prev )
+  def find_modified(files, cur, prev)
     (cur & prev).each do |key|
       cur_stat, prev_stat = files[key], @files[key]
 
